@@ -8,13 +8,21 @@
 
 import AppKit
 
+protocol DragDropHandler: AnyObject {
+	func dragBegan()
+	func dragEnded()
+}
+
 class GlobalDragDropStateManager {
 	private let pasteboard = NSPasteboard(name: .drag)
 	private var lastChangeCount = -1
 	private var evtMonitor: Any!
-	private var isDragging = false
+	private(set) var isDragging = false
+	weak var handler: DragDropHandler?
 	
 	init() {
+		lastChangeCount = pasteboard.changeCount
+		
 		evtMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDragged,
 																  .leftMouseUp]) { [unowned self] (event) in
 			switch event.type {
@@ -38,10 +46,18 @@ class GlobalDragDropStateManager {
 	}
 	
 	func startDrag() {
-		print("Drag start")
+		guard !isDragging else {
+			return
+		}
+		isDragging = true
+		handler?.dragBegan()
 	}
 	
 	func endDragIfNeeded() {
-		
+		guard isDragging else {
+			return
+		}
+		isDragging = false
+		handler?.dragEnded()
 	}
 }
